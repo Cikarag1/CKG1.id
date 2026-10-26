@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title">
+  <title id="title">Supplier Price Manager</title>
+  <rect x="3" y="3" width="42" height="42" rx="12" fill="#14213d"/>
+  <path d="M14 14h20M14 21h20M14 28h12" fill="none" stroke="#f4f6f8" stroke-width="3" stroke-linecap="round"/>
+  <path d="M14 35h20" fill="none" stroke="#36c4a8" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="34" cy="28" r="3" fill="#36c4a8"/>
+</svg>

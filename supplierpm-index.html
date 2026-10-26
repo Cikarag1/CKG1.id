@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#14213d">
+  <meta name="description" content="Kelola dan bandingkan harga bahan baku supplier dalam satu dashboard. Data tersimpan di Cloudflare D1.">
+  <title>Supplier Price Manager</title>
+  <link rel="icon" type="image/svg+xml" href="/logo.svg">
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <div id="login-view" class="login-page">
+    <div class="login-brand">
+      <img src="/logo.svg" alt="" width="42" height="42">
+      <span>Supplier <strong>Price Manager</strong></span>
+    </div>
+    <main class="login-card">
+      <div class="eyebrow">RUANG KERJA PEMASOK</div>
+      <h1>Masuk ke dashboard</h1>
+      <p class="muted">Gunakan akun operator yang dikonfigurasi di Cloudflare.</p>
+      <form id="login-form">
+        <label for="login-username">Nama pengguna</label>
+        <input id="login-username" name="username" autocomplete="username" required maxlength="120" placeholder="Nama pengguna">
+        <label for="login-password">Kata sandi</label>
+        <input id="login-password" name="password" type="password" autocomplete="current-password" required maxlength="1024" placeholder="Kata sandi">
+        <p id="login-message" class="form-message" role="alert" aria-live="polite"></p>
+        <button class="button button-primary button-wide" type="submit">Masuk <span aria-hidden="true">→</span></button>
+      </form>
+      <p class="login-footnote"><span class="security-dot"></span> Akses dilindungi sesi server</p>
+    </main>
+    <footer class="login-footer">Supplier Price Manager <span>·</span> Data usaha, tertata.</footer>
+  </div>
+
+  <div id="app-view" class="app-shell" hidden>
+    <aside id="sidebar" class="sidebar" aria-label="Navigasi utama">
+      <a class="brand" href="#dashboard" data-nav="dashboard">
+        <img src="/logo.svg" alt="" width="38" height="38">
+        <span class="brand-copy">Supplier<br><strong>Price Manager</strong></span>
+      </a>
+      <div class="nav-label">RUANG KERJA</div>
+      <nav class="main-nav">
+        <button class="nav-link active" type="button" data-view="dashboard"><span class="nav-icon">▦</span> Ringkasan</button>
+        <button class="nav-link" type="button" data-view="items"><span class="nav-icon">▤</span> Daftar barang</button>
+        <button class="nav-link" type="button" data-view="compare"><span class="nav-icon">⇄</span> Bandingkan harga</button>
+        <button class="nav-link" type="button" data-view="history"><span class="nav-icon">◷</span> Riwayat perubahan</button>
+        <button class="nav-link" type="button" data-view="backup"><span class="nav-icon">↧</span> Impor & cadangan</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="storage-card">
+          <span class="storage-mark" aria-hidden="true">DB</span>
+          <div><strong>Basis data cloud</strong><small id="sidebar-status">Memeriksa koneksi</small></div>
+        </div>
+        <div class="user-row">
+          <div class="avatar">OP</div>
+          <div class="user-copy"><strong id="operator-name">Operator</strong><small>Administrator</small></div>
+          <button id="logout-button" class="icon-button logout-icon" type="button" aria-label="Keluar" title="Keluar">↪</button>
+        </div>
+      </div>
+    </aside>
+    <div id="sidebar-scrim" class="sidebar-scrim" hidden></div>
+
+    <main class="main-area">
+      <header class="topbar">
+        <button id="menu-toggle" class="icon-button menu-toggle" type="button" aria-label="Buka navigasi">☰</button>
+        <div class="topbar-heading">
+          <div class="eyebrow">PENGELOLAAN PENGADAAN</div>
+          <h1 id="page-heading">Ringkasan</h1>
+        </div>
+        <div class="topbar-tools">
+          <label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Cari barang, kode, supplier…" autocomplete="off" aria-label="Cari barang, kode, supplier, kategori, atau catatan"><kbd>/</kbd></label>
+          <div id="save-status" class="save-status" data-state="saved"><span class="status-dot"></span><span id="save-status-text">Tersambung</span></div>
+          <button id="header-add" class="button button-primary" type="button"><span aria-hidden="true">＋</span><span class="add-label">Tambah barang</span></button>
+        </div>
+      </header>
+
+      <div id="connection-banner" class="connection-banner" role="status" hidden>
+        <span class="banner-icon">!</span>
+        <div><strong>Koneksi basis data terputus</strong><p>Perubahan belum tersimpan. Periksa koneksi Anda, lalu coba lagi.</p></div>
+        <button id="retry-connection" class="button button-small" type="button">Coba lagi</button>
+      </div>
+
+      <div class="page-content">
+        <section class="view-panel active" data-panel="dashboard">
+          <div class="page-intro">
+            <div><p class="eyebrow">IKHTISAR PENGADAAN</p><h2>Pantau harga dan ketersediaan</h2><p>Semua angka disinkronkan dari basis data setelah server mengonfirmasi.</p></div>
+            <span id="last-updated" class="last-updated">Data diperbarui —</span>
+          </div>
+          <div class="stats-grid">
+            <article class="stat-card stat-primary"><div class="stat-label">Jenis barang</div><div id="stat-items" class="stat-value">—</div><div class="stat-caption">catatan barang aktif</div><span class="stat-icon">▤</span></article>
+            <article class="stat-card"><div class="stat-label">Supplier</div><div id="stat-suppliers" class="stat-value">—</div><div class="stat-caption">pemasok tercatat</div><span class="stat-icon">◉</span></article>
+            <article class="stat-card"><div class="stat-label">Stok tercatat</div><div id="stat-stock" class="stat-value stat-value-small">—</div><div class="stat-caption">jumlah ditampilkan per satuan</div><span class="stat-icon">▦</span></article>
+            <article class="stat-card stat-value-card"><div class="stat-label">Estimasi nilai persediaan</div><div id="stat-inventory" class="stat-value stat-money">—</div><div class="stat-caption">harga satuan × stok tersedia</div><span class="stat-icon">Rp</span></article>
+          </div>
+          <div class="insight-grid">
+            <article class="insight-card"><div class="insight-icon teal">↕</div><div><div class="insight-title">Perubahan harga</div><div class="insight-value"><span id="stat-changed">—</span> barang</div><p>memiliki catatan harga sebelumnya</p></div><button class="text-link" data-view="history" type="button">Lihat riwayat <span>→</span></button></article>
+            <article class="insight-card"><div class="insight-icon amber">↑</div><div><div class="insight-title">Harga satuan tertinggi</div><div id="stat-highest" class="insight-value">—</div><p id="stat-highest-label">Belum ada barang</p></div></article>
+            <article class="insight-card"><div class="insight-icon green">↓</div><div><div class="insight-title">Termurah yang sebanding</div><div id="stat-lowest" class="insight-value">—</div><p id="stat-lowest-label">Perlu lebih dari satu supplier</p></div></article>
+          </div>
+          <section class="section-card">
+            <div class="section-heading"><div><p class="eyebrow">CATATAN TERBARU</p><h3>Daftar barang</h3></div><button class="text-link" data-view="items" type="button">Lihat semua <span>→</span></button></div>
+            <div class="table-wrap"><table><thead><tr><th>Barang</th><th>Supplier</th><th>Harga satuan</th><th>Pembelian</th><th>Stok</th><th>Terakhir diperbarui</th><th><span class="sr-only">Tindakan</span></th></tr></thead><tbody id="dashboard-table-body"><tr><td colspan="7" class="table-placeholder">Memuat data…</td></tr></tbody></table></div>
+            <div id="dashboard-empty" class="empty-state" hidden><span class="empty-mark">＋</span><h4>Belum ada barang tercatat</h4><p>Mulai dengan menambahkan barang dari supplier.</p><button class="button button-primary" data-action="add" type="button">Tambah barang pertama</button></div>
+          </section>
+          <section class="section-card activity-card"><div class="section-heading"><div><p class="eyebrow">JEJAK KERJA</p><h3>Aktivitas terbaru</h3></div><button class="text-link" data-view="history" type="button">Lihat semua <span>→</span></button></div><div id="dashboard-activity" class="activity-list"><div class="table-placeholder">Memuat aktivitas…</div></div></section>
+        </section>
+
+        <section class="view-panel" data-panel="items">
+          <div class="page-intro compact-intro"><div><p class="eyebrow">KATALOG PEMASOK</p><h2>Daftar barang</h2><p>Kelola harga, kuantitas pembelian, dan stok sebagai data terpisah.</p></div></div>
+          <section class="section-card">
+            <div class="filter-bar">
+              <label class="filter-search"><span aria-hidden="true">⌕</span><input id="item-search" type="search" placeholder="Cari nama, kode, supplier, catatan…" autocomplete="off"></label>
+              <select id="supplier-filter" aria-label="Filter supplier"><option value="">Semua supplier</option></select>
+              <select id="category-filter" aria-label="Filter kategori"><option value="">Semua kategori</option></select>
+              <label class="price-filter"><span class="sr-only">Harga minimum</span><input id="min-price-filter" type="number" min="0" step="1" placeholder="Min Rp"></label>
+              <label class="price-filter"><span class="sr-only">Harga maksimum</span><input id="max-price-filter" type="number" min="0" step="1" placeholder="Maks Rp"></label>
+              <select id="sort-filter" aria-label="Urutkan data"><option value="date_desc">Tanggal terbaru</option><option value="price_asc">Harga terendah</option><option value="price_desc">Harga tertinggi</option><option value="name_asc">Nama A–Z</option></select>
+              <button id="reset-filters" class="button button-quiet" type="button">Reset</button>
+            </div>
+            <div class="table-summary"><span id="items-summary">Memuat data…</span><span class="table-hint">Harga satuan tidak mencampur kuantitas pembelian dengan stok.</span></div>
+            <div class="table-wrap"><table><thead><tr><th>Kode / barang</th><th>Supplier</th><th>Harga satuan</th><th>Kuantitas beli</th><th>Stok tersedia</th><th>Nilai persediaan</th><th>Diubah</th><th><span class="sr-only">Tindakan</span></th></tr></thead><tbody id="items-table-body"><tr><td colspan="8" class="table-placeholder">Memuat data…</td></tr></tbody></table></div>
+            <div id="items-empty" class="empty-state" hidden><span class="empty-mark">⌕</span><h4 id="items-empty-title">Data tidak ditemukan</h4><p id="items-empty-message">Ubah kata kunci atau reset filter.</p><button id="items-empty-add" class="button button-primary" data-action="add" type="button">Tambah barang</button></div>
+            <div class="pagination"><span id="page-label">Halaman 1 dari 1</span><div class="pagination-buttons"><button id="page-prev" class="button button-quiet" type="button" aria-label="Halaman sebelumnya">← Sebelumnya</button><button id="page-next" class="button button-quiet" type="button" aria-label="Halaman berikutnya">Berikutnya →</button></div></div>
+          </section>
+        </section>
+
+        <section class="view-panel" data-panel="compare">
+          <div class="page-intro compact-intro"><div><p class="eyebrow">PEMILIHAN PEMASOK</p><h2>Bandingkan harga</h2><p>Hanya barang bernama sama dengan satuan pembelian yang sama persis yang dibandingkan.</p></div></div>
+          <div class="notice notice-info"><span>i</span><p>Perbandingan memakai harga untuk satu unit pengukuran yang sama. Konversi kg ke gram atau satuan berbeda tidak diasumsikan otomatis.</p></div>
+          <section class="section-card"><div class="compare-toolbar"><div><h3>Harga antar-supplier</h3><p id="compare-count" class="muted">Memuat perbandingan…</p></div><label class="compare-search"><span aria-hidden="true">⌕</span><input id="compare-search" type="search" placeholder="Cari nama barang…" autocomplete="off"></label></div><div id="compare-list" class="compare-list"><div class="table-placeholder">Memuat data…</div></div><div id="compare-empty" class="empty-state" hidden><span class="empty-mark">⇄</span><h4>Belum ada harga yang dapat dibandingkan</h4><p>Tambahkan barang bernama sama dari supplier berbeda dengan satuan pembelian yang sama.</p></div></section>
+        </section>
+
+        <section class="view-panel" data-panel="history">
+          <div class="page-intro compact-intro"><div><p class="eyebrow">AUDIT DAN PERUBAHAN</p><h2>Riwayat perubahan</h2><p>Catatan harga sebelumnya tetap disimpan saat harga atau supplier diperbarui.</p></div></div>
+          <section class="section-card"><div class="section-heading"><div><h3>Riwayat harga dan aktivitas</h3><p id="history-count" class="muted">Memuat riwayat…</p></div></div><div class="table-wrap"><table><thead><tr><th>Tanggal perubahan</th><th>Barang / kode</th><th>Supplier</th><th>Harga lama</th><th>Harga baru</th><th>Satuan</th></tr></thead><tbody id="history-table-body"><tr><td colspan="6" class="table-placeholder">Memuat riwayat…</td></tr></tbody></table></div><div id="history-empty" class="empty-state" hidden><span class="empty-mark">◷</span><h4>Belum ada riwayat harga</h4><p>Perubahan harga dan supplier akan tercatat di sini.</p></div><div class="pagination"><span id="history-page-label">Halaman 1 dari 1</span><div class="pagination-buttons"><button id="history-prev" class="button button-quiet" type="button">← Sebelumnya</button><button id="history-next" class="button button-quiet" type="button">Berikutnya →</button></div></div></section>
+        </section>
+
+        <section class="view-panel" data-panel="backup">
+          <div class="page-intro compact-intro"><div><p class="eyebrow">KEAMANAN DATA</p><h2>Impor & cadangan</h2><p>Harga barang disimpan di D1; perubahan kode aplikasi tidak mengubah harga yang telah dicatat.</p></div></div>
+          <div class="backup-grid">
+            <article class="section-card backup-card"><div class="backup-icon">⇧</div><p class="eyebrow">MIGRASI SPREADSHEET</p><h3>Impor CSV</h3><p>Pratinjau isi file, periksa duplikat, lalu pilih untuk menambahkan atau memperbarui data.</p><label class="button button-secondary file-button" for="csv-file">Pilih file CSV</label><input id="csv-file" class="visually-hidden" type="file" accept=".csv,text/csv"></article>
+            <article class="section-card backup-card"><div class="backup-icon teal">↧</div><p class="eyebrow">SALINAN APLIKASI</p><h3>Cadangan JSON</h3><p>Unduh semua barang beserta riwayat harga dan aktivitas. Pemulihan akan menggabungkan isi cadangan; data lain tidak dihapus.</p><button id="download-backup" class="button button-secondary" type="button">Unduh cadangan</button></article>
+            <article class="section-card backup-card"><div class="backup-icon blue">⇄</div><p class="eyebrow">PULIHKAN ISI</p><h3>Pulihkan cadangan</h3><p>Gabungkan isi file cadangan yang pernah diunduh. Barang dengan ID yang sama diperbarui setelah konfirmasi.</p><label class="button button-secondary file-button" for="backup-file">Pilih file JSON</label><input id="backup-file" class="visually-hidden" type="file" accept=".json,application/json"></article>
+          </div>
+          <div class="notice notice-warning"><span>!</span><p><strong>Kode dan data adalah dua hal berbeda.</strong> Deploy/push kode memperbarui aplikasi. Harga, supplier, dan stok berubah melalui dashboard dan disimpan ke D1. Ekspor D1 tambahan dapat dilakukan dengan Wrangler dari komputer yang memiliki akses Cloudflare.</p></div>
+          <section class="section-card"><div class="section-heading"><div><p class="eyebrow">FORMAT CSV</p><h3>Kolom untuk impor</h3><p>Gunakan UTF-8. Baris duplikat diperiksa berdasarkan pasangan kode barang dan supplier.</p></div><button id="download-csv" class="button button-secondary" type="button">Ekspor CSV</button></div><div class="csv-columns"><code>kode_barang</code><code>nama_barang</code><code>supplier</code><code>kategori</code><code>harga_satuan_rp</code><code>kuantitas_pembelian</code><code>satuan_pembelian</code><code>stok_tersedia</code><code>satuan_stok</code><code>catatan</code></div></section>
+        </section>
+      </div>
+      <footer class="page-footer"><span>Supplier Price Manager</span><span>Perubahan tersimpan hanya setelah konfirmasi server</span></footer>
+    </main>
+  </div>
+
+  <dialog id="item-dialog" class="modal modal-wide">
+    <form id="item-form" method="dialog" novalidate>
+      <div class="modal-heading"><div><p class="eyebrow" id="item-form-eyebrow">DATA BARU</p><h2 id="item-dialog-title">Tambah barang</h2></div><button class="icon-button dialog-close" type="button" data-close="item-dialog" aria-label="Tutup">×</button></div>
+      <div class="form-grid">
+        <label>Kode barang<input name="itemCode" required maxlength="60" placeholder="Contoh: BRG-001"></label>
+        <label>Nama barang<input name="name" required maxlength="160" placeholder="Contoh: Tepung protein tinggi"></label>
+        <label>Nama supplier<input name="supplier" required maxlength="120" placeholder="Nama pemasok"></label>
+        <label>Jenis / kategori<input name="category" required maxlength="80" list="category-options" placeholder="Contoh: Bahan kering"><datalist id="category-options"><option value="Bahan kering"><option value="Bahan cair"><option value="Kemasan"><option value="Bumbu"></datalist></label>
+        <label>Harga satuan (rupiah)<span class="field-hint">Harga per 1 satuan pembelian</span><input name="unitPriceRupiah" type="number" min="0" step="1" required inputmode="numeric" placeholder="15000"></label>
+        <label>Satuan pembelian<select name="purchaseUnit" required><option value="">Pilih satuan</option><option>kg</option><option>gram</option><option>liter</option><option>ml</option><option>dus</option><option>karton</option><option>sak</option><option>pcs</option><option>unit</option></select></label>
+        <label>Kuantitas pembelian<span class="field-hint">Maksimal 3 angka desimal</span><input name="purchaseQuantity" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,3})?" required placeholder="2,5"></label>
+        <label>Stok tersedia<span class="field-hint">Nilai stok saat ini, terpisah dari pembelian</span><input name="stockQuantity" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,3})?" required placeholder="10"></label>
+        <label>Satuan stok<select name="stockUnit" required><option value="">Pilih satuan</option><option>kg</option><option>gram</option><option>liter</option><option>ml</option><option>dus</option><option>karton</option><option>sak</option><option>pcs</option><option>unit</option></select></label>
+        <p class="form-full field-hint">Nilai persediaan mengonversi kg ↔ gram, liter ↔ ml, serta pcs ↔ unit. Satuan kemasan lain harus sama; satuan yang tidak sebanding ditolak.</p>
+        <label class="form-full">Catatan tambahan<textarea name="notes" rows="3" maxlength="2000" placeholder="Opsional: kualitas, masa simpan, atau catatan supplier"></textarea></label>
+      </div>
+      <div class="calculation-preview"><div><span>Total harga pembelian</span><strong id="purchase-total-preview">Rp0</strong></div><div><span>Estimasi nilai persediaan</span><strong id="inventory-value-preview">Rp0</strong></div><p>Harga × kuantitas pembelian; harga × stok setelah konversi satuan yang setara. Nilai akhir dihitung ulang di server.</p></div>
+      <p id="item-form-error" class="form-message" role="alert" aria-live="polite"></p>
+      <div class="modal-actions"><button class="button button-quiet" type="button" data-close="item-dialog">Batal</button><button id="item-save-button" class="button button-primary" type="submit">Simpan barang</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="detail-dialog" class="modal"><div class="modal-heading"><div><p class="eyebrow">RINCIAN BARANG</p><h2 id="detail-title">Detail barang</h2></div><button class="icon-button dialog-close" type="button" data-close="detail-dialog" aria-label="Tutup">×</button></div><div id="detail-content" class="detail-content"></div><div class="modal-actions"><button class="button button-quiet" type="button" data-close="detail-dialog">Tutup</button></div></dialog>
+
+  <dialog id="delete-dialog" class="modal modal-confirm"><div class="confirm-mark danger">!</div><h2>Hapus barang?</h2><p id="delete-message">Data akan dihapus dari daftar aktif. Riwayat perubahan harga yang sudah tercatat tetap disimpan.</p><p class="form-message" id="delete-error" role="alert"></p><div class="modal-actions"><button class="button button-quiet" type="button" data-close="delete-dialog">Batal</button><button id="delete-confirm" class="button button-danger" type="button">Hapus barang</button></div></dialog>
+
+  <dialog id="import-dialog" class="modal modal-wide"><div class="modal-heading"><div><p class="eyebrow">PRATINJAU BERKAS</p><h2>Impor CSV</h2></div><button class="icon-button dialog-close" type="button" data-close="import-dialog" aria-label="Tutup">×</button></div><p id="import-summary" class="muted"></p><div id="import-alerts" class="import-alerts"></div><div class="table-wrap preview-table-wrap"><table><thead><tr><th>Baris</th><th>Kode</th><th>Barang</th><th>Supplier</th><th>Harga</th><th>Status</th></tr></thead><tbody id="import-preview-body"></tbody></table></div><div class="import-options"><label class="radio-option"><input type="radio" name="import-mode" value="add" checked><span><strong>Tambah saja</strong><small>Jika ditemukan duplikat, baris tersebut tidak disimpan.</small></span></label><label class="radio-option"><input type="radio" name="import-mode" value="upsert"><span><strong>Perbarui yang cocok</strong><small>Konfirmasi ini mengizinkan pembaruan baris dengan kode dan supplier yang sama.</small></span></label></div><label class="check-option"><input id="import-confirm-checkbox" type="checkbox"><span>Saya telah memeriksa pratinjau dan memahami pilihan impor di atas.</span></label><p id="import-error" class="form-message" role="alert"></p><div class="modal-actions"><button class="button button-quiet" type="button" data-close="import-dialog">Batal</button><button id="import-confirm" class="button button-primary" type="button" disabled>Impor data</button></div></dialog>
+
+  <dialog id="restore-dialog" class="modal modal-confirm"><div class="confirm-mark">↧</div><h2>Pulihkan cadangan?</h2><p id="restore-summary">Data dari cadangan akan digabungkan. Isi yang tidak ada di file tidak dihapus.</p><label class="restore-confirm-label">Ketik <strong>PULIHKAN</strong> untuk melanjutkan<input id="restore-phrase" autocomplete="off" placeholder="PULIHKAN"></label><p id="restore-error" class="form-message" role="alert"></p><div class="modal-actions"><button class="button button-quiet" type="button" data-close="restore-dialog">Batal</button><button id="restore-confirm" class="button button-primary" type="button" disabled>Gabungkan cadangan</button></div></dialog>
+
+  <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>

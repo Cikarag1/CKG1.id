@@ -1,0 +1,19 @@
+{
+  "name": "supplier-price-manager",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@10.9.9",
+  "scripts": {
+    "dev": "wrangler dev --ip 0.0.0.0 --port 3000",
+    "deploy": "wrangler deploy",
+    "db:create": "wrangler d1 create supplier-price-manager",
+    "db:migrate:local": "wrangler d1 migrations apply supplier-price-manager --local",
+    "db:migrate:remote": "wrangler d1 migrations apply supplier-price-manager --remote",
+    "password:hash": "node scripts/make-password-hash.mjs",
+    "check": "node --check src/index.js && node --check src/auth.js && node --check src/items.js && node --check src/transfers.js && node --check src/validation.js && node --check public/app.js && node --check public/units.js"
+  },
+  "devDependencies": {
+    "wrangler": "4.153.0"
+  }
+}
